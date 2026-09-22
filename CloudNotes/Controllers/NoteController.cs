@@ -1,52 +1,88 @@
-﻿using CloudNotes.Models;
+﻿using CloudNotes.Context;
+using CloudNotes.Dto;
+using CloudNotes.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CloudNotes.Controllers
 {
     [ApiController]
     [Route("note")]
-    public class NoteController : ControllerBase
+    public class NoteController(CloudNotesDbContext context) : ControllerBase
     {
 
-        private static IList<Note> _notes = new List<Note>()
-        {
-            new Note(){Description = "note sur les fondamantal de c#"} ,
-            new Note(){Description= "note sur les POO de c#"},
-            new Note(){Description= "note Angular"},
-            new Note(){Description= "note Azure"}
-        };
+        private CloudNotesDbContext _context = context;
+
 
         [HttpGet]
         public IActionResult Get()
         {
-            return Ok(_notes);
+            try
+            {
+                List<Note> _notes = _context.Notes.ToList();
+                return Ok(_notes);
+            }
+            catch
+            {
+                return BadRequest();
+            }
+            
         }
 
         [HttpPost]
-        public IActionResult Post(string description)
+        public IActionResult Post(AddNotesDto dto)
         {
-            _notes.Add(new Note() { Description = description });
-            return Ok();
+            try
+            {
+                Note note = new Note()
+                {
+                    Titre = dto.Titre,
+                    Content = dto.Content
+                };
+
+                _context.Notes.Add(note);
+                _context.SaveChanges();
+                return Ok();
+            }
+        
+            catch{
+                return BadRequest();
+            }
         }
 
         [HttpPut]
-        public IActionResult Put(Guid id, string description)
+        public IActionResult Put(ModdifierNoteDto dto)
         {
-            Note? note = _notes.SingleOrDefault(n => n.Id == id);
-            if (note is null)
+            try{
+                Note? note = _context.Notes.SingleOrDefault(n => n.Id == dto.Id);
+
+                if (note is null)
+                    return BadRequest();
+
+                note.Titre = dto.Titre;
+                note.Content = dto.Content;
+                _context.SaveChanges();
+                return Ok(); 
+            }
+            catch
+            {
                 return BadRequest();
-            note.Description = description;
-            return Ok();
+            }
         }
 
         [HttpDelete]
         public IActionResult Delete(Guid id)
         {
-            Note? note = _notes.SingleOrDefault(n => n.Id == id);
-            if (note is null)
+            try{
+                Note? note = _context.Notes.SingleOrDefault(n => n.Id == id);
+                if (note is null)
+                    return BadRequest();
+                _context.Notes.Remove(note);
+                return Ok();
+            }
+            catch
+            {
                 return BadRequest();
-            _notes.Remove(note);
-            return Ok();
+            }
         }
 
     }
